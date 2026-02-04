@@ -1,0 +1,52 @@
+<h1 class="page-title">Dashboard</h1>
+
+@if (loading) {
+  <div class="loading-spinner"></div>
+} @else if (error) {
+  <div class="card">
+    <div class="error-state">{{ error }}</div>
+  </div>
+} @else {
+  <div class="summary-cards">
+    <div class="summary-card">
+      <div class="value">{{ summary?.totalEmployees ?? 0 }}</div>
+      <div class="label">Total Employees</div>
+    </div>
+    <div class="summary-card">
+      <div class="value">{{ summary?.totalPresentDays ?? 0 }}</div>
+      <div class="label">Total Present Days (all)</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-bottom: 1rem; font-size: 1.1rem;">Attendance summary by employee</h2>
+    @if (summaryRows.length === 0) {
+      <div class="empty-state">No data yet. Add employees and mark attendance.</div>
+    } @else {
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Employee ID</th>
+              <th>Name</th>
+              <th>Department</th>
+              <th>Present days</th>
+              <th>Total records</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of summaryRows; track row.id) {
+              <tr>
+                <td>{{ row.employee_id }}</td>
+                <td>{{ row.full_name }}</td>
+                <td>{{ row.department }}</td>
+                <td>{{ row.present_days }}</td>
+                <td>{{ row.total_records }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+}
