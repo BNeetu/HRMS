@@ -1,28 +1,22 @@
 import sqlite3
 from fastapi import APIRouter, HTTPException, Query
 from app.database import get_connection
-from app.schemas import AttendanceCreate
+from app.schemas import AttendanceCreate, AttendanceResponse, SummaryRow
 
 router = APIRouter()
 
 
-def row_to_attendance(row) -> dict:
-    d = dict(row)
-    return {k: d[k] for k in d.keys()}
-
-
-@router.get("")
+@router.get("", response_model=list[AttendanceResponse])
 def list_attendance(
     employeeId: int | None = Query(None, alias="employeeId"),
     date: str | None = Query(None),
 ):
+    """Get attendance records with optional filters"""
     conn = get_connection()
     try:
         sql = """
-            SELECT a.id, a.employee_id, a.date, a.status, a.created_at,
-                   e.employee_id AS emp_code, e.full_name
+            SELECT a.id, a.employee_id, a.date, a.status, a.check_in_time, a.check_out_time, a.created_at
             FROM attendance a
-            JOIN employees e ON e.id = a.employee_id
             WHERE 1=1
         """
         params = []
@@ -34,62 +28,65 @@ def list_attendance(
             params.append(date.strip())
         sql += " ORDER BY a.date DESC, a.created_at DESC"
 
-        cur = conn.execute(sql, params)
-        return [row_to_attendance(dict(r)) for r in cur.fetchall()]
+        rows = conn.execute(sql, params).fetchall()
+        return [dict(row) for row in rows]
     finally:
         conn.close()
 
 
-@router.post("", status_code=201)
+@router.post("", response_model=AttendanceResponse, status_code=201)
 def mark_attendance(body: AttendanceCreate):
+    """Mark attendance for an employee"""
     conn = get_connection()
     try:
-        cur = conn.execute("SELECT id FROM employees WHERE id = ?", (body.employee_id,))
-        if not cur.fetchone():
+        # Check if employee exists
+        emp = conn.execute("SELECT id FROM employees WHERE id = ?", (body.employee_id,)).fetchone()
+        if not emp:
             raise HTTPException(status_code=404, detail="Employee not found")
 
         try:
             conn.execute(
-                "INSERT INTO attendance (employee_id, date, status) VALUES (?, ?, ?)",
-                (body.employee_id, body.date.strip(), body.status.strip()),
+                """INSERT INTO attendance (employee_id, date, status, check_in_time, check_out_time) 
+                   VALUES (?, ?, ?, ?, ?)""",
+                (body.employee_id, body.date.strip(), body.status.strip(), body.check_in_time, body.check_out_time),
             )
             conn.commit()
         except sqlite3.IntegrityError:
+            conn.rollback()
             raise HTTPException(
                 status_code=409,
                 detail="Attendance already marked for this employee on this date",
             )
 
         row = conn.execute(
-            """SELECT a.id, a.employee_id, a.date, a.status, a.created_at,
-                      e.employee_id AS emp_code, e.full_name
-               FROM attendance a
-               JOIN employees e ON e.id = a.employee_id
-               WHERE a.employee_id = ? AND a.date = ?""",
+            "SELECT id, employee_id, date, status, check_in_time, check_out_time, created_at FROM attendance WHERE employee_id = ? AND date = ?",
             (body.employee_id, body.date.strip()),
         ).fetchone()
-        return row_to_attendance(dict(row))
+        return dict(row)
     except HTTPException:
         raise
-    except Exception:
-        raise HTTPException(status_code=500, detail="Failed to mark attendance")
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to mark attendance: {str(e)}")
     finally:
         conn.close()
 
 
-@router.get("/summary")
+@router.get("/summary", response_model=list[SummaryRow])
 def attendance_summary():
+    """Get attendance summary for all employees"""
     conn = get_connection()
     try:
-        cur = conn.execute("""
-            SELECT e.id, e.employee_id, e.full_name, e.department,
+        rows = conn.execute("""
+            SELECT e.id, e.employee_id, e.full_name, COALESCE(d.name, 'N/A') as department,
                    COUNT(CASE WHEN a.status = 'Present' THEN 1 END) AS present_days,
                    COUNT(a.id) AS total_records
             FROM employees e
+            LEFT JOIN departments d ON e.department_id = d.id
             LEFT JOIN attendance a ON a.employee_id = e.id
             GROUP BY e.id
             ORDER BY e.full_name
-        """)
-        return [dict(r) for r in cur.fetchall()]
+        """).fetchall()
+        return [dict(row) for row in rows]
     finally:
         conn.close()

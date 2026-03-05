@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { ApiService, Employee, EmployeeCreate } from '../../services/api.service';
+import { ApiService, Employee, EmployeeCreate, Department } from '../../services/api.service';
 
 @Component({
   selector: 'app-employees',
@@ -15,17 +15,20 @@ export class EmployeesComponent implements OnInit {
   formError: string | null = null;
   successMessage: string | null = null;
   employees: Employee[] = [];
+  // updated form to use numeric department_id instead of free-text department name
   form: EmployeeCreate = {
     employee_id: '',
     full_name: '',
     email: '',
-    department: '',
+    department_id: 0,
   };
 
+  departments: Department[] = [];
   constructor(private api: ApiService) {}
 
   ngOnInit(): void {
     this.loadList();
+    this.loadDepartments();
   }
 
   loadList(): void {
@@ -43,27 +46,40 @@ export class EmployeesComponent implements OnInit {
     });
   }
 
+  loadDepartments(): void {
+    this.api.getDepartments().subscribe({
+      next: (list) => (this.departments = list),
+      error: (err: string) => {
+        // not critical, just log
+        console.error('Failed to load departments:', err);
+      },
+    });
+  }
+
   onSubmit(): void {
     this.formError = null;
     this.successMessage = null;
+    const deptId = Number(this.form.department_id);
     const payload: EmployeeCreate = {
       employee_id: this.form.employee_id.trim(),
       full_name: this.form.full_name.trim(),
       email: this.form.email.trim(),
-      department: this.form.department.trim(),
+      department_id: deptId,
     };
-    if (!payload.employee_id || !payload.full_name || !payload.email || !payload.department) {
+    if (!payload.employee_id || !payload.full_name || !payload.email || !deptId) {
       this.formError = 'All fields are required.';
       return;
     }
     this.api.addEmployee(payload).subscribe({
       next: () => {
         this.successMessage = 'Employee added successfully.';
-        this.form = { employee_id: '', full_name: '', email: '', department: '' };
+        this.form = { employee_id: '', full_name: '', email: '', department_id: 0 };
         this.loadList();
       },
       error: (err: string) => {
         this.formError = err;
+      },
+    });
       },
     });
   }

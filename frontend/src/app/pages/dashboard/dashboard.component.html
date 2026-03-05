@@ -3,18 +3,18 @@
 @if (loading) {
   <div class="loading-spinner"></div>
 } @else if (error) {
-  <div class="card">
-    <div class="error-state">{{ error }}</div>
+  <div class="card" style="background: #fee; border-left: 4px solid #f44336;">
+    <div class="error-state">⚠️ {{ error }}</div>
   </div>
 } @else {
   <div class="summary-cards">
-    <div class="summary-card">
-      <div class="value">{{ summary?.totalEmployees ?? 0 }}</div>
-      <div class="label">Total Employees</div>
+    <div class="summary-card" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(56, 189, 248, 0.05) 100%); border: 1px solid rgba(56, 189, 248, 0.3);">
+      <div class="value" style="color: #38bdf8;">{{ summary?.totalEmployees ?? 0 }}</div>
+      <div class="label" style="color: #94a3b8;">👥 Total Employees</div>
     </div>
-    <div class="summary-card">
-      <div class="value">{{ summary?.totalPresentDays ?? 0 }}</div>
-      <div class="label">Total Present Days (all)</div>
+    <div class="summary-card" style="background: linear-gradient(135deg, rgba(52, 211, 153, 0.15) 0%, rgba(52, 211, 153, 0.05) 100%); border: 1px solid rgba(52, 211, 153, 0.3);">
+      <div class="value" style="color: #34d399;">{{ summary?.totalPresentDays ?? 0 }}</div>
+      <div class="label" style="color: #94a3b8;">✓ Total Present Days</div>
     </div>
   </div>
 
@@ -48,5 +48,38 @@
         </table>
       </div>
     }
+  </div>
+
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+      <div>
+        <label style="color: #94a3b8; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Select Date:</label>
+        <input 
+          type="date" 
+          #dateInput 
+          (change)="onDateChange(dateInput.value)" 
+          [value]="selectedDate"
+          style="padding: 0.6rem 0.8rem; background: #334155; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 6px; color: #f1f5f9; font-size: 0.9rem; cursor: pointer;"
+        />
+      </div>
+      <button (click)="refreshData()" style="padding: 0.6rem 1.2rem; background: #38bdf8; color: #0f172a; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.3s; align-self: flex-end;">🔄 Refresh</button>
+    </div>
+    <div style="margin-bottom: 1.5rem;">
+      <h2 style="margin: 0 0 0.5rem 0; font-size: 1.4rem; color: #f1f5f9; font-weight: 600;">📊 Overall Attendance Distribution</h2>
+      <p style="margin: 0; font-size: 0.85rem; color: #94a3b8;">Company-wide Present vs Absent</p>
+    </div>
+    <div style="position: relative; width: 100%; height: 400px; background: #0f172a; border-radius: 8px; padding: 1rem; box-shadow: 0 4px 16px rgba(0,0,0,0.3); border: 1px solid rgba(148, 163, 184, 0.1);">
+      <canvas #doughnutChartCanvas></canvas>
+    </div>
+  </div>
+
+  <div class="card" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 2rem; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); border: 1px solid rgba(56, 189, 248, 0.2); margin-top: 1.5rem;">
+    <div style="margin-bottom: 1.5rem;">
+      <h2 style="margin: 0 0 0.5rem 0; font-size: 1.4rem; color: #f1f5f9; font-weight: 600;">📈 Employee-wise Attendance</h2>
+      <p style="margin: 0; font-size: 0.85rem; color: #94a3b8;">Present and Absent Days for Each Employee</p>
+    </div>
+    <div style="position: relative; width: 100%; height: 450px; background: #0f172a; border-radius: 8px; padding: 1rem; box-shadow: 0 4px 16px rgba(0,0,0,0.3); border: 1px solid rgba(148, 163, 184, 0.1);">
+      <canvas #barChartCanvas></canvas>
+    </div>
   </div>
 }
