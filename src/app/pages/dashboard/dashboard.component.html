@@ -1,0 +1,100 @@
+<h1 class="page-title">HRMS Dashboard</h1>
+
+@if (loading) {
+  <div class="loading-spinner"></div>
+} @else if (error) {
+  <div class="card" style="background: #fee; border-left: 4px solid #f44336;">
+    <div class="error-state">⚠️ {{ error }}</div>
+  </div>
+} @else {
+  <div class="summary-cards">
+    <div class="summary-card" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(56, 189, 248, 0.05) 100%); border: 1px solid rgba(56, 189, 248, 0.3);">
+      <div class="value" style="color: #38bdf8;">{{ summary?.totalEmployees ?? 0 }}</div>
+      <div class="label" style="color: #94a3b8;">👥 Total Employees</div>
+    </div>
+    <div class="summary-card" style="background: linear-gradient(135deg, rgba(52, 211, 153, 0.15) 0%, rgba(52, 211, 153, 0.05) 100%); border: 1px solid rgba(52, 211, 153, 0.3);">
+      <div class="value" style="color: #34d399;">{{ getAttendanceRate() }}</div>
+      <div class="label" style="color: #94a3b8;">📈 Attendance Rate</div>
+    </div>
+    <div class="summary-card" style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(168, 85, 247, 0.05) 100%); border: 1px solid rgba(168, 85, 247, 0.3);">
+      <div class="value" style="color: #a855f7; font-size: 1.2rem;">{{ getTopPerformer() }}</div>
+      <div class="label" style="color: #94a3b8;">⭐ Top Performer</div>
+    </div>
+  </div>
+
+  <div style="margin-bottom: 1.5rem;">
+    <!-- Overall Distribution -->
+    <div class="card" style="margin-bottom: 0;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+        <div>
+          <h2 style="margin: 0; font-size: 1.2rem; color: #f1f5f9;">📊 Overall Attendance Distribution</h2>
+          <p style="margin: 0; font-size: 0.85rem; color: #94a3b8;">Summary of all attendance records</p>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 1.1rem; font-weight: bold; color: #34d399;">{{ summary?.totalPresentDays }} Present</div>
+          <div style="font-size: 0.9rem; color: #f87171;">{{ summary?.totalAbsentDays }} Absent</div>
+        </div>
+      </div>
+      <div style="position: relative; height: 300px;">
+        <canvas #doughnutChartCanvas></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Employee-wise Attendance -->
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h2 style="margin: 0; font-size: 1.4rem; color: #f1f5f9; font-weight: 600;">📈 Employee-wise Attendance</h2>
+        <p style="margin: 0; font-size: 0.85rem; color: #94a3b8;">Detailed view of presence/absence per employee</p>
+      </div>
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <input 
+          type="date" 
+          #dateInput 
+          (change)="onDateChange(dateInput.value)" 
+          [value]="selectedDate"
+          style="padding: 0.5rem; background: #334155; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 6px; color: #f1f5f9;"
+        />
+        <button (click)="refreshData()" style="padding: 0.5rem 1rem; background: #38bdf8; color: #0f172a; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">🔄</button>
+      </div>
+    </div>
+    
+    <div style="position: relative; height: 400px; margin-bottom: 2rem;">
+      <canvas #barChartCanvas></canvas>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Department</th>
+            <th>Present</th>
+            <th>Absent</th>
+            <th>Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of summaryRows; track row.id) {
+            <tr>
+              <td>
+                <div style="font-weight: 600; color: #f1f5f9;">{{ row.full_name }}</div>
+                <div style="font-size: 0.75rem; color: #94a3b8;">ID: {{ row.employee_id }}</div>
+              </td>
+              <td>{{ row.department }}</td>
+              <td style="color: #34d399; font-weight: 600;">{{ row.present_days }}</td>
+              <td style="color: #f87171;">{{ row.total_records - row.present_days }}</td>
+              <td>
+                <div style="width: 100px; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; margin-bottom: 4px;">
+                  <div [style.width.%]="(row.present_days / (row.total_records || 1)) * 100" style="height: 100%; background: #34d399;"></div>
+                </div>
+                <span style="font-size: 0.8rem;">{{ ((row.present_days / (row.total_records || 1)) * 100).toFixed(0) }}%</span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}
